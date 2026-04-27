@@ -86,6 +86,7 @@ def main() -> None:
         output.write_text("", encoding="utf-8")
 
     os.environ.setdefault("VLLM_USE_V1", "0")
+    print(f"VLLM_USE_V1={os.environ.get('VLLM_USE_V1')}")
     from vllm import LLM, SamplingParams
 
     llm_kwargs: dict[str, Any] = {

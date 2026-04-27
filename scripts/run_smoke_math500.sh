@@ -7,6 +7,7 @@ RUN_NAME="${RUN_NAME:-math500_smoke}"
 SAMPLES_PER_PROBLEM="${SAMPLES_PER_PROBLEM:-8}"
 MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-4096}"
 BATCH_SIZE="${BATCH_SIZE:-8}"
+export VLLM_USE_V1="${VLLM_USE_V1:-0}"
 
 python scripts/experiment.py \
   --model "$MODEL" \

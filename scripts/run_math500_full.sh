@@ -6,6 +6,7 @@ RLVR_MODEL="${RLVR_MODEL:?set RLVR_MODEL to the same-lineage RLVR checkpoint}"
 BASE_RUN_NAME="${BASE_RUN_NAME:-math500_base_full}"
 RLVR_RUN_NAME="${RLVR_RUN_NAME:-math500_rlvr_full}"
 BATCH_SIZE="${BATCH_SIZE:-8}"
+export VLLM_USE_V1="${VLLM_USE_V1:-0}"
 
 python scripts/experiment.py \
   --model "$BASE_MODEL" \
