@@ -29,7 +29,6 @@ def main() -> None:
     parser.add_argument("--processed", type=Path, default=Path("data/processed/math500_simplerl.jsonl"))
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--run-name")
-    parser.add_argument("--backend", choices=["vllm", "transformers"], default="vllm")
     parser.add_argument("--model", required=True)
     parser.add_argument("--model-type")
     parser.add_argument("--samples-per-problem", type=int, default=128)
@@ -44,8 +43,6 @@ def main() -> None:
     parser.add_argument("--dtype")
     parser.add_argument("--gpu-memory-utilization", type=float)
     parser.add_argument("--max-model-len", type=int)
-    parser.add_argument("--device")
-    parser.add_argument("--device-map")
     parser.add_argument("--trust-remote-code", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--ks", default="1,2,4,8,16,32,64,128")
@@ -74,7 +71,7 @@ def main() -> None:
             json.dump(
                 {
                     "model": args.model,
-                    "backend": args.backend,
+                    "backend": "vllm",
                     "model_type": args.model_type,
                     "processed": str(args.processed),
                     "samples_per_problem": args.samples_per_problem,
@@ -94,7 +91,7 @@ def main() -> None:
 
     generate_cmd = [
         sys.executable,
-        f"scripts/generate_{args.backend}.py",
+        "scripts/generate_vllm.py",
         "--input",
         str(args.processed),
         "--output",
@@ -123,20 +120,12 @@ def main() -> None:
     ):
         if value is not None:
             generate_cmd.extend([flag, str(value)])
-    if args.backend == "vllm":
-        for flag, value in (
-            ("--tensor-parallel-size", args.tensor_parallel_size),
-            ("--gpu-memory-utilization", args.gpu_memory_utilization),
-        ):
-            if value is not None:
-                generate_cmd.extend([flag, str(value)])
-    if args.backend == "transformers":
-        for flag, value in (
-            ("--device", args.device),
-            ("--device-map", args.device_map),
-        ):
-            if value is not None:
-                generate_cmd.extend([flag, str(value)])
+    for flag, value in (
+        ("--tensor-parallel-size", args.tensor_parallel_size),
+        ("--gpu-memory-utilization", args.gpu_memory_utilization),
+    ):
+        if value is not None:
+            generate_cmd.extend([flag, str(value)])
     for flag, enabled in (
         ("--trust-remote-code", args.trust_remote_code),
         ("--overwrite", args.overwrite),
