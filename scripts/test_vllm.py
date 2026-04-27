@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import platform
 from typing import Any
 
@@ -24,12 +23,9 @@ def main() -> None:
     parser.add_argument("--gpu-memory-utilization", type=float)
     parser.add_argument("--max-model-len", type=int)
     parser.add_argument("--trust-remote-code", action="store_true")
-    parser.add_argument("--use-v1", action="store_true")
     args = parser.parse_args()
 
-    os.environ.setdefault("VLLM_USE_V1", "1" if args.use_v1 else "0")
     print(f"python={platform.python_version()}")
-    print(f"VLLM_USE_V1={os.environ.get('VLLM_USE_V1')}")
 
     import vllm
     from vllm import LLM, SamplingParams

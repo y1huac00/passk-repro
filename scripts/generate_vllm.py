@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -85,8 +84,6 @@ def main() -> None:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text("", encoding="utf-8")
 
-    os.environ.setdefault("VLLM_USE_V1", "0")
-    print(f"VLLM_USE_V1={os.environ.get('VLLM_USE_V1')}")
     from vllm import LLM, SamplingParams
 
     llm_kwargs: dict[str, Any] = {
