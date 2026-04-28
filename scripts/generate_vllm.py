@@ -11,6 +11,9 @@ from pathlib import Path
 from typing import Any
 
 
+DEFAULT_STOP_STRINGS = ["<|im_end|>", "<|endoftext|>", "\nHuman:", "\nAssistant:"]
+
+
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
     with path.open("r", encoding="utf-8") as f:
         return [json.loads(line) for line in f if line.strip()]
@@ -112,6 +115,7 @@ def main() -> None:
             "temperature": args.temperature,
             "top_p": args.top_p,
             "max_tokens": args.max_new_tokens,
+            "stop": DEFAULT_STOP_STRINGS,
         }
         if args.seed is not None:
             sampling_kwargs["seed"] = args.seed
