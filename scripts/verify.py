@@ -6,6 +6,8 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import signal
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +18,27 @@ from math_verify import (
     parse,
     verify,
 )
+
+
+VERIFY_TIMEOUT_SECONDS = 3.0
+
+
+class VerifyTimeoutError(Exception):
+    pass
+
+
+@contextmanager
+def time_limit(seconds: float):
+    def handler(signum, frame):
+        raise VerifyTimeoutError()
+
+    old_handler = signal.signal(signal.SIGALRM, handler)
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, old_handler)
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -115,23 +138,31 @@ def parse_candidates(answer: str, configs: list[Any]) -> list[Any]:
 
 
 def verify_answer(prediction: str, gold: str) -> dict[str, Any]:
-    strings = sorted({value for value in (text_value(prediction), text_value(gold)) if value})
-    configs: list[Any] = [LatexExtractionConfig(), ExprExtractionConfig()]
-    if strings:
-        configs.append(StringExtractionConfig(strings=tuple(strings)))
-
     try:
-        parsed_predictions = parse_candidates(prediction, configs)
-        parsed_golds = parse_candidates(gold, configs)
-        for parsed_gold in parsed_golds:
-            for parsed_prediction in parsed_predictions:
-                if verify(parsed_gold, parsed_prediction):
-                    return {
-                        "is_correct": True,
-                        "verification_method": "math_verify",
-                        "parsed_prediction": repr(parsed_prediction),
-                        "parsed_gold": repr(parsed_gold),
-                    }
+        with time_limit(VERIFY_TIMEOUT_SECONDS):
+            strings = sorted({value for value in (text_value(prediction), text_value(gold)) if value})
+            configs: list[Any] = [LatexExtractionConfig(), ExprExtractionConfig()]
+            if strings:
+                configs.append(StringExtractionConfig(strings=tuple(strings)))
+
+            parsed_predictions = parse_candidates(prediction, configs)
+            parsed_golds = parse_candidates(gold, configs)
+            for parsed_gold in parsed_golds:
+                for parsed_prediction in parsed_predictions:
+                    if verify(parsed_gold, parsed_prediction):
+                        return {
+                            "is_correct": True,
+                            "verification_method": "math_verify",
+                            "parsed_prediction": repr(parsed_prediction),
+                            "parsed_gold": repr(parsed_gold),
+                        }
+    except VerifyTimeoutError:
+        return {
+            "is_correct": False,
+            "verification_method": "math_verify_timeout",
+            "parsed_prediction": "",
+            "parsed_gold": "",
+        }
     except Exception as error:
         return {
             "is_correct": False,
