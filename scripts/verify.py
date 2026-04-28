@@ -137,6 +137,13 @@ def parse_candidates(answer: str, configs: list[Any]) -> list[Any]:
     return []
 
 
+def safe_repr(value: Any) -> str:
+    try:
+        return repr(value)
+    except Exception as error:
+        return f"<repr_error:{type(error).__name__}>"
+
+
 def verify_answer(prediction: str, gold: str) -> dict[str, Any]:
     try:
         with time_limit(VERIFY_TIMEOUT_SECONDS):
@@ -153,9 +160,15 @@ def verify_answer(prediction: str, gold: str) -> dict[str, Any]:
                         return {
                             "is_correct": True,
                             "verification_method": "math_verify",
-                            "parsed_prediction": repr(parsed_prediction),
-                            "parsed_gold": repr(parsed_gold),
+                            "parsed_prediction": safe_repr(parsed_prediction),
+                            "parsed_gold": safe_repr(parsed_gold),
                         }
+            return {
+                "is_correct": False,
+                "verification_method": "math_verify_no_match",
+                "parsed_prediction": safe_repr(parsed_predictions),
+                "parsed_gold": safe_repr(parsed_golds),
+            }
     except VerifyTimeoutError:
         return {
             "is_correct": False,
@@ -170,12 +183,6 @@ def verify_answer(prediction: str, gold: str) -> dict[str, Any]:
             "parsed_prediction": "",
             "parsed_gold": "",
         }
-    return {
-        "is_correct": False,
-        "verification_method": "math_verify_no_match",
-        "parsed_prediction": repr(parsed_predictions),
-        "parsed_gold": repr(parsed_golds),
-    }
 
 
 def main() -> None:
