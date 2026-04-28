@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_STOP_STRINGS = ["<|im_end|>", "<|endoftext|>", "\nHuman:", "\nAssistant:"]
+DEFAULT_STOP_STRINGS = ["<|im_end|>", "<|endoftext|>", "Human:", "Assistant:"]
 
 
 def read_jsonl(path: Path) -> list[dict[str, Any]]:

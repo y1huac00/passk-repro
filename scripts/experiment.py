@@ -12,7 +12,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_STOP_STRINGS = ["<|im_end|>", "<|endoftext|>", "\nHuman:", "\nAssistant:"]
+DEFAULT_STOP_STRINGS = ["<|im_end|>", "<|endoftext|>", "Human:", "Assistant:"]
 
 
 def safe_name(text: str) -> str:
