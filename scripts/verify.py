@@ -120,17 +120,25 @@ def verify_answer(prediction: str, gold: str) -> dict[str, Any]:
     if strings:
         configs.append(StringExtractionConfig(strings=tuple(strings)))
 
-    parsed_predictions = parse_candidates(prediction, configs)
-    parsed_golds = parse_candidates(gold, configs)
-    for parsed_gold in parsed_golds:
-        for parsed_prediction in parsed_predictions:
-            if verify(parsed_gold, parsed_prediction):
-                return {
-                    "is_correct": True,
-                    "verification_method": "math_verify",
-                    "parsed_prediction": repr(parsed_prediction),
-                    "parsed_gold": repr(parsed_gold),
-                }
+    try:
+        parsed_predictions = parse_candidates(prediction, configs)
+        parsed_golds = parse_candidates(gold, configs)
+        for parsed_gold in parsed_golds:
+            for parsed_prediction in parsed_predictions:
+                if verify(parsed_gold, parsed_prediction):
+                    return {
+                        "is_correct": True,
+                        "verification_method": "math_verify",
+                        "parsed_prediction": repr(parsed_prediction),
+                        "parsed_gold": repr(parsed_gold),
+                    }
+    except Exception as error:
+        return {
+            "is_correct": False,
+            "verification_method": f"math_verify_error:{type(error).__name__}",
+            "parsed_prediction": "",
+            "parsed_gold": "",
+        }
     return {
         "is_correct": False,
         "verification_method": "math_verify_no_match",
