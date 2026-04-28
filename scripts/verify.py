@@ -62,8 +62,10 @@ def extract_answer(response: str, dataset: str | None = None) -> tuple[str, str]
         return boxed, "boxed"
 
     match = re.findall(r"(?is)(?:final answer|answer)\s*(?:is|:)?\s*(.+)$", response)
-    if match:
-        return match[-1].strip().splitlines()[0].strip(" ."), "final_answer"
+    for value in reversed(match):
+        lines = [line.strip(" .") for line in value.strip().splitlines() if line.strip(" .")]
+        if lines:
+            return lines[0], "final_answer"
 
     if dataset and dataset.upper().startswith("AIME"):
         ints = re.findall(r"(?<![\d.])-?\d+(?![\d.])", response)

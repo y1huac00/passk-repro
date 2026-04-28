@@ -189,6 +189,36 @@ def plot_output_tokens_hist(experiments: list[dict[str, Any]], output_dir: Path)
     plt.close()
 
 
+def plot_tokens_by_correctness(experiments: list[dict[str, Any]], output_dir: Path) -> None:
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(len(experiments), 1, figsize=(7, 3.6 * len(experiments)))
+    if len(experiments) == 1:
+        axes = [axes]
+
+    for ax, exp in zip(axes, experiments):
+        correct = [
+            row["num_output_tokens"]
+            for row in exp["verified_rows"]
+            if row.get("is_correct") and isinstance(row.get("num_output_tokens"), int)
+        ]
+        wrong = [
+            row["num_output_tokens"]
+            for row in exp["verified_rows"]
+            if not row.get("is_correct") and isinstance(row.get("num_output_tokens"), int)
+        ]
+        ax.hist([wrong, correct], bins=50, stacked=True, label=["wrong", "correct"])
+        ax.set_title(exp["label"])
+        ax.set_xlabel("output tokens")
+        ax.set_ylabel("sample count")
+        ax.grid(True, alpha=0.3)
+        ax.legend()
+
+    plt.tight_layout()
+    plt.savefig(output_dir / "tokens_by_correctness.png", dpi=200)
+    plt.close()
+
+
 def plot_finish_reason(experiments: list[dict[str, Any]], output_dir: Path) -> None:
     import matplotlib.pyplot as plt
 
@@ -257,6 +287,7 @@ def main() -> None:
     plot_pass_at_k(experiments, args.output_dir)
     plot_correct_count_hist(experiments, args.output_dir)
     plot_output_tokens_hist(experiments, args.output_dir)
+    plot_tokens_by_correctness(experiments, args.output_dir)
     plot_finish_reason(experiments, args.output_dir)
     plot_per_problem_delta(experiments, args.output_dir)
     print(f"Wrote analysis to {args.output_dir}")
