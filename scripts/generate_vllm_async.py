@@ -30,6 +30,42 @@ def append_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+def write_experiment_config(args: argparse.Namespace, output: Path) -> None:
+    output_dir = output.parent
+    paths = {
+        "generations": output,
+        "verified": output_dir / "verified.jsonl",
+        "metrics": output_dir / "metrics.json",
+        "config": output_dir / "experiment_config.json",
+    }
+    config = {
+        "model": args.model,
+        "backend": "vllm_async",
+        "model_type": args.model_type,
+        "processed": str(args.input),
+        "samples_per_problem": args.samples_per_problem,
+        "temperature": args.temperature,
+        "top_p": args.top_p,
+        "max_new_tokens": args.max_new_tokens,
+        "stop": DEFAULT_STOP_STRINGS,
+        "limit": args.limit,
+        "offset": args.offset,
+        "seed": args.seed,
+        "max_concurrent_requests": args.max_concurrent_requests,
+        "write_every": args.write_every,
+        "tensor_parallel_size": args.tensor_parallel_size,
+        "dtype": args.dtype,
+        "gpu_memory_utilization": args.gpu_memory_utilization,
+        "max_model_len": args.max_model_len,
+        "trust_remote_code": args.trust_remote_code,
+        "paths": {key: str(value) for key, value in paths.items()},
+    }
+    output_dir.mkdir(parents=True, exist_ok=True)
+    with paths["config"].open("w", encoding="utf-8") as f:
+        json.dump(config, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+
 def safe_name(text: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", text).strip("_")
 
@@ -150,6 +186,7 @@ async def run_async(args: argparse.Namespace) -> None:
     print(f"Max concurrent requests: {args.max_concurrent_requests}")
     if args.dry_run:
         return
+    write_experiment_config(args, output)
     if args.overwrite:
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text("", encoding="utf-8")
