@@ -7,9 +7,12 @@ import argparse
 import json
 import re
 import signal
+from concurrent.futures import ProcessPoolExecutor
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
+
+from tqdm import tqdm
 
 from math_verify import (
     ExprExtractionConfig,
@@ -185,35 +188,73 @@ def verify_answer(prediction: str, gold: str) -> dict[str, Any]:
         }
 
 
+def verify_row(
+    row: dict[str, Any],
+    problem: dict[str, Any],
+    force_extract: bool,
+) -> dict[str, Any]:
+    problem_id = row.get("problem_id") or row.get("id")
+    if row.get("extracted_answer") and not force_extract:
+        answer, method = row["extracted_answer"], row.get("extraction_method", "provided")
+    else:
+        answer, method = extract_answer(row.get("response", ""), row.get("dataset"))
+
+    result = verify_answer(answer, problem["answer"])
+    return {
+        **row,
+        **result,
+        "problem_id": problem_id,
+        "gold_answer": problem["answer"],
+        "extracted_answer": answer,
+        "extraction_method": method,
+    }
+
+
+def verify_rows(
+    rows: list[dict[str, Any]],
+    problems: dict[str, dict[str, Any]],
+    force_extract: bool,
+    workers: int,
+) -> list[dict[str, Any]]:
+    tasks = [
+        (row, problems[row.get("problem_id") or row.get("id")], force_extract)
+        for row in rows
+    ]
+    if not tasks:
+        return []
+
+    if workers == 1:
+        return [
+            verify_row(row, problem, task_force_extract)
+            for row, problem, task_force_extract in tqdm(tasks, desc="Verifying", unit="row")
+        ]
+
+    with ProcessPoolExecutor(max_workers=workers) as executor:
+        return list(
+            tqdm(
+                executor.map(verify_row, *zip(*tasks), chunksize=32),
+                total=len(tasks),
+                desc="Verifying",
+                unit="row",
+            )
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--predictions", type=Path, required=True)
     parser.add_argument("--problems", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--force-extract", action="store_true")
+    parser.add_argument("--workers", type=int, default=1)
     args = parser.parse_args()
 
-    problems = {row["id"]: row for row in read_jsonl(args.problems)}
-    verified = []
-    for row in read_jsonl(args.predictions):
-        problem_id = row.get("problem_id") or row.get("id")
-        problem = problems[problem_id]
-        if row.get("extracted_answer") and not args.force_extract:
-            answer, method = row["extracted_answer"], row.get("extraction_method", "provided")
-        else:
-            answer, method = extract_answer(row.get("response", ""), row.get("dataset"))
+    if args.workers < 1:
+        raise ValueError("--workers must be >= 1")
 
-        result = verify_answer(answer, problem["answer"])
-        verified.append(
-            {
-                **row,
-                **result,
-                "problem_id": problem_id,
-                "gold_answer": problem["answer"],
-                "extracted_answer": answer,
-                "extraction_method": method,
-            }
-        )
+    problems = {row["id"]: row for row in read_jsonl(args.problems)}
+    rows = read_jsonl(args.predictions)
+    verified = verify_rows(rows, problems, args.force_extract, args.workers)
 
     write_jsonl(args.output, verified)
     print(f"Wrote {len(verified)} verified rows to {args.output}")
