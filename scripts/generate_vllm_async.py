@@ -52,8 +52,6 @@ def write_experiment_config(args: argparse.Namespace, output: Path) -> None:
         "offset": args.offset,
         "seed": args.seed,
         "max_concurrent_requests": args.max_concurrent_requests,
-        "max_num_seqs": args.max_num_seqs,
-        "max_num_batched_tokens": args.max_num_batched_tokens,
         "write_every": args.write_every,
         "tensor_parallel_size": args.tensor_parallel_size,
         "dtype": args.dtype,
@@ -95,8 +93,6 @@ def build_engine(args: argparse.Namespace) -> Any:
         "dtype",
         "gpu_memory_utilization",
         "max_model_len",
-        "max_num_seqs",
-        "max_num_batched_tokens",
     ):
         value = getattr(args, name)
         if value is not None:
@@ -239,8 +235,6 @@ def main() -> None:
     parser.add_argument("--top-p", type=float, default=0.95)
     parser.add_argument("--max-new-tokens", type=int, default=16384)
     parser.add_argument("--max-concurrent-requests", type=int, default=128)
-    parser.add_argument("--max-num-seqs", type=int)
-    parser.add_argument("--max-num-batched-tokens", type=int)
     parser.add_argument("--write-every", type=int, default=16)
     parser.add_argument("--limit", type=int)
     parser.add_argument("--offset", type=int, default=0)
@@ -256,10 +250,6 @@ def main() -> None:
 
     if args.max_concurrent_requests < 1:
         raise ValueError("--max-concurrent-requests must be >= 1")
-    if args.max_num_seqs is not None and args.max_num_seqs < 1:
-        raise ValueError("--max-num-seqs must be >= 1")
-    if args.max_num_batched_tokens is not None and args.max_num_batched_tokens < 1:
-        raise ValueError("--max-num-batched-tokens must be >= 1")
     if args.write_every < 1:
         raise ValueError("--write-every must be >= 1")
 
